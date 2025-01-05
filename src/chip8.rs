@@ -7,6 +7,18 @@ mod fontset;
 pub const FONTSET_START_ADDRESS: usize = 0x50;
 pub const PROGRAM_START_ADDRESS: usize = 0x200;
 
+#[derive(clap::ValueEnum, Clone, Default, Debug)]
+pub enum Mode {
+    #[default]
+    Chip8,
+    Chip48,
+}
+
+pub enum Actions {
+    None,
+    Redraw,
+}
+
 pub struct Chip8 {
     pub memory: [u8; 4096],
     pub registers: [u8; 16],
@@ -17,10 +29,11 @@ pub struct Chip8 {
     pub delay_timer: u8,
     pub sound_timer: u8,
     pub display: [[u8; 64]; 32],
+    pub mode: Mode,
 }
 
 impl Chip8 {
-    pub fn new() -> Self {
+    pub fn new(mode: Mode) -> Self {
         let mut machine = Self {
             memory: [0; 4096],
             registers: [0; 16],
@@ -31,6 +44,7 @@ impl Chip8 {
             delay_timer: 0,
             sound_timer: 0,
             display: [[0; 64]; 32],
+            mode,
         };
 
         FONTSET.iter().enumerate().for_each(|(i, &byte)| {
@@ -56,12 +70,17 @@ impl Chip8 {
         byte1 << 8 | byte2
     }
 
-    pub fn execute(&mut self, operation: &Instruction, keyboard_state: u8) -> Result<(), Error> {
+    pub fn execute(
+        &mut self,
+        operation: &Instruction,
+        keyboard_state: u8,
+    ) -> Result<Actions, Error> {
         match operation.instruction {
             0x00 => match operation.nn {
                 0xE0 => {
                     // Clear the display
                     self.display = [[0; 64]; 32];
+                    return Ok(Actions::Redraw);
                 }
                 0xEE => {
                     // Return from a subroutine
@@ -144,16 +163,36 @@ impl Chip8 {
                 }
                 0x06 => {
                     // Set Vx = Vy SHR 1
-                    self.registers[operation.x] = self.registers[operation.y] >> 1;
-                    self.registers[0xF] = self.registers[operation.y] & 0x1;
+                    match self.mode {
+                        Mode::Chip8 => {
+                            self.registers[0xF] = self.registers[operation.y] & 0x1;
+                            self.registers[operation.x] = self.registers[operation.y] >> 1;
+                        }
+                        Mode::Chip48 => {
+                            self.registers[0xF] = self.registers[operation.x] & 0x1;
+                            self.registers[operation.x] >>= 1;
+                        }
+                    }
                 }
                 0x07 => {
                     // Set Vx = Vy - Vx, set VF = NOT borrow
+                    let (result, overflow) =
+                        self.registers[operation.y].overflowing_sub(self.registers[operation.x]);
+                    self.registers[operation.x] = result;
+                    self.registers[0xF] = !overflow as u8;
                 }
                 0x0E => {
                     // Set Vx = Vy SHL 1
-                    self.registers[operation.x] = self.registers[operation.y] << 1;
-                    self.registers[0xF] = self.registers[operation.y] >> 7;
+                    match self.mode {
+                        Mode::Chip8 => {
+                            self.registers[0xF] = self.registers[operation.y] >> 7;
+                            self.registers[operation.x] = self.registers[operation.y] << 1;
+                        }
+                        Mode::Chip48 => {
+                            self.registers[0xF] = self.registers[operation.x] >> 7;
+                            self.registers[operation.x] <<= 1;
+                        }
+                    }
                 }
                 _ => {}
             },
@@ -169,7 +208,14 @@ impl Chip8 {
             }
             0x0B => {
                 // Jump to location NNN + V0
-                self.program_counter = operation.nnn + self.registers[0] as usize;
+                match self.mode {
+                    Mode::Chip8 => {
+                        self.program_counter = operation.nnn + self.registers[0] as usize;
+                    }
+                    Mode::Chip48 => {
+                        self.program_counter = operation.nnn + self.registers[operation.x] as usize;
+                    }
+                }
             }
             0x0C => {
                 // Set Vx = random byte AND NN
@@ -199,6 +245,8 @@ impl Chip8 {
                         }
                     }
                 }
+
+                return Ok(Actions::Redraw);
             }
             0x0E => match operation.nn {
                 0x9E => {
@@ -257,11 +305,24 @@ impl Chip8 {
                     for i in 0..operation.x {
                         self.memory[self.index_register as usize + i] = self.registers[i];
                     }
+
+                    match self.mode {
+                        Mode::Chip8 => {
+                            self.index_register += operation.x as u16 + 1;
+                        }
+                        Mode::Chip48 => {}
+                    }
                 }
                 0x65 => {
                     // Read registers V0 through Vx from memory starting at location I
                     for i in 0..operation.x {
                         self.registers[i] = self.memory[self.index_register as usize + i];
+                    }
+                    match self.mode {
+                        Mode::Chip8 => {
+                            self.index_register += operation.x as u16 + 1;
+                        }
+                        Mode::Chip48 => {}
                     }
                 }
                 _ => {}
@@ -269,7 +330,7 @@ impl Chip8 {
             _ => {}
         }
 
-        Ok(())
+        Ok(Actions::None)
     }
 }
 

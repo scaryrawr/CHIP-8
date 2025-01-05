@@ -18,7 +18,9 @@
             },
             "args": [
                 "--program",
-                "/Users/mike/Downloads/test_opcode.ch8"
+                "/Users/mike/Downloads/test_opcode.ch8",
+                "--mode",
+                "chip48"
             ],
             "cwd": "${workspaceFolder}"
         },

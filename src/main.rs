@@ -1,5 +1,5 @@
 use std::{
-    io::{stdout, Error},
+    io::{stdout, Error, Write},
     time,
 };
 
@@ -8,7 +8,7 @@ use clap::Parser;
 use cli::CliOptions;
 use crossterm::{
     cursor,
-    event::{read, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
+    event::{read, Event, KeyCode, KeyEvent, KeyModifiers},
     style::Print,
     terminal, ExecutableCommand, QueueableCommand,
 };
@@ -29,6 +29,8 @@ fn draw(display: &[[u8; 64]; 32]) -> Result<(), Error> {
         }
     }
 
+    stdout.flush()?;
+
     Ok(())
 }
 
@@ -41,7 +43,7 @@ fn main() -> Result<(), Error> {
     stdout.execute(cursor::Hide)?;
     stdout.execute(terminal::Clear(terminal::ClearType::All))?;
 
-    let mut chip8 = chip8::Chip8::new();
+    let mut chip8 = chip8::Chip8::new(options.mode);
     let program = std::fs::read(&options.program)?;
     chip8.load(&program);
 
@@ -51,13 +53,18 @@ fn main() -> Result<(), Error> {
         let opcode = chip8.fetch();
 
         let instruction = decode(opcode);
-        chip8.execute(&instruction, get_keyboard_state()?)?;
+        let action = chip8.execute(&instruction, get_keyboard_state()?)?;
 
         // Attempt to evaluate around 1000 ops per second
         while time::Instant::now() - start < time::Duration::from_millis(60_000 / 1000) {}
 
         // Redraw the display
-        draw(&chip8.display)?;
+        match action {
+            chip8::Actions::Redraw => {
+                draw(&chip8.display)?;
+            }
+            chip8::Actions::None => {}
+        }
 
         // Update delay and sound timer at 60hz
         if time::Instant::now() - timer > time::Duration::from_millis(1_000 / 60) {
@@ -74,7 +81,7 @@ fn main() -> Result<(), Error> {
 }
 
 fn get_keyboard_state() -> Result<u8, Error> {
-    if crossterm::event::poll(time::Duration::from_millis(60_000 / 1000))? {
+    if crossterm::event::poll(time::Duration::from_millis(50))? {
         match read()? {
             Event::Key(KeyEvent {
                 code: KeyCode::Char('c'),
