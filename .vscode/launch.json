@@ -1,0 +1,45 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'CHIP-8'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=CHIP-8",
+                    "--package=CHIP-8"
+                ],
+                "filter": {
+                    "name": "CHIP-8",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "--program",
+                "/Users/mike/Downloads/test_opcode.ch8"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'CHIP-8'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=CHIP-8",
+                    "--package=CHIP-8"
+                ],
+                "filter": {
+                    "name": "CHIP-8",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
