@@ -1,7 +1,7 @@
 use std::{
     io::{stdout, Error, Write},
     process::exit,
-    time,
+    time::{self, Duration},
 };
 
 use chip8::{decode, Chip8, KeyboardState};
@@ -76,6 +76,7 @@ fn draw_debug(machine: &Chip8, keyboard: &KeyboardState) -> Result<(), Error> {
 
 fn main() -> Result<(), Error> {
     let options = CliOptions::parse();
+    let speed_duration = time::Duration::from_nanos(1_000_000_000 / options.speed);
 
     terminal::enable_raw_mode()?;
 
@@ -99,11 +100,11 @@ fn main() -> Result<(), Error> {
         let opcode = chip8.fetch();
 
         let instruction = decode(opcode);
-        update_keyboard_state(&mut keyboard_state)?;
+        update_keyboard_state(&mut keyboard_state, &speed_duration)?;
         let action = chip8.execute(&instruction, &keyboard_state)?;
 
         // Attempt to evaluate around 1000 ops per second
-        while time::Instant::now() - start < time::Duration::from_millis(1_000 / 700) {}
+        while time::Instant::now() - start < speed_duration {}
 
         // Redraw the display
         match action {
@@ -131,7 +132,7 @@ fn main() -> Result<(), Error> {
     }
 }
 
-fn update_keyboard_state(state: &mut KeyboardState) -> Result<(), Error> {
+fn update_keyboard_state(state: &mut KeyboardState, timeout: &Duration) -> Result<(), Error> {
     const KEYS: [KeyCode; 16] = [
         KeyCode::Char('x'),
         KeyCode::Char('1'),
@@ -152,7 +153,7 @@ fn update_keyboard_state(state: &mut KeyboardState) -> Result<(), Error> {
     ];
 
     state.pressed_key = None;
-    if crossterm::event::poll(time::Duration::from_millis(1_000 / 7000))? {
+    if crossterm::event::poll(*timeout)? {
         match read()? {
             Event::Key(KeyEvent {
                 code: KeyCode::Char('c'),
