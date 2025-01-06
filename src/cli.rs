@@ -11,6 +11,14 @@ pub struct CliOptions {
     pub program: String,
 
     /// The mode to run in.
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "chip48")]
     pub mode: Mode,
+
+    /// Operations to run per second.
+    #[arg(short, long, default_value = "700")]
+    pub speed: u64,
+
+    // Flag for printing debug information.
+    #[arg(short, long)]
+    pub debug: bool,
 }

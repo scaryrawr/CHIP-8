@@ -18,9 +18,10 @@
             },
             "args": [
                 "--program",
-                "/Users/mike/Downloads/test_opcode.ch8",
+                "/Users/mike/Downloads/Space Invaders [David Winter].ch8",
                 "--mode",
-                "chip48"
+                "chip48",
+                "--debug"
             ],
             "cwd": "${workspaceFolder}"
         },

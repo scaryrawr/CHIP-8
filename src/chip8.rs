@@ -19,6 +19,20 @@ pub enum Actions {
     Redraw,
 }
 
+pub struct KeyboardState {
+    pub keys_pressed: [bool; 16],
+    pub pressed_key: Option<u8>,
+}
+
+impl KeyboardState {
+    pub fn new() -> Self {
+        Self {
+            keys_pressed: [false; 16],
+            pressed_key: None,
+        }
+    }
+}
+
 pub struct Chip8 {
     pub memory: [u8; 4096],
     pub registers: [u8; 16],
@@ -73,7 +87,7 @@ impl Chip8 {
     pub fn execute(
         &mut self,
         operation: &Instruction,
-        keyboard_state: u8,
+        keyboard_state: &KeyboardState,
     ) -> Result<Actions, Error> {
         match operation.instruction {
             0x00 => match operation.nn {
@@ -251,13 +265,13 @@ impl Chip8 {
             0x0E => match operation.nn {
                 0x9E => {
                     // Skip next instruction if key with the value of Vx is pressed
-                    if self.registers[operation.x] & keyboard_state != 0 {
+                    if keyboard_state.keys_pressed[self.registers[operation.x] as usize] {
                         self.program_counter += 2;
                     }
                 }
                 0xA1 => {
                     // Skip next instruction if key with the value of Vx is not pressed
-                    if self.registers[operation.x] & keyboard_state == 0 {
+                    if !keyboard_state.keys_pressed[self.registers[operation.x] as usize] {
                         self.program_counter += 2;
                     }
                 }
@@ -270,10 +284,10 @@ impl Chip8 {
                 }
                 0x0A => {
                     // Wait for a key press, store the value of the key in Vx
-                    if keyboard_state == 0 {
-                        self.program_counter -= 2;
+                    if let Some(key) = keyboard_state.pressed_key {
+                        self.registers[operation.x] = key;
                     } else {
-                        self.registers[operation.x] = keyboard_state;
+                        self.program_counter -= 2;
                     }
                 }
                 0x15 => {
