@@ -244,9 +244,13 @@ impl Chip8 {
                 let sprite = &self.memory
                     [self.index_register as usize..self.index_register as usize + operation.n];
                 for (j, byte) in sprite.iter().enumerate() {
+                    if y + j > 31 {
+                        break;
+                    }
+
                     for i in 0..8 {
-                        if x + i > 63 || y + j > 31 {
-                            continue;
+                        if x + i > 63 {
+                            break;
                         }
 
                         let pixel = (byte >> (7 - i)) & 1;
@@ -316,7 +320,7 @@ impl Chip8 {
                 }
                 0x55 => {
                     // Store registers V0 through Vx in memory starting at location I
-                    for i in 0..operation.x {
+                    for i in 0..=operation.x {
                         self.memory[self.index_register as usize + i] = self.registers[i];
                     }
 
@@ -329,7 +333,7 @@ impl Chip8 {
                 }
                 0x65 => {
                     // Read registers V0 through Vx from memory starting at location I
-                    for i in 0..operation.x {
+                    for i in 0..=operation.x {
                         self.registers[i] = self.memory[self.index_register as usize + i];
                     }
                     match self.mode {
