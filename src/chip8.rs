@@ -152,14 +152,32 @@ impl Chip8 {
                 0x01 => {
                     // Set Vx = Vx OR Vy
                     self.registers[operation.x] |= self.registers[operation.y];
+                    match self.mode {
+                        Mode::Chip8 => {
+                            self.registers[0xf] = 0;
+                        }
+                        _ => {}
+                    }
                 }
                 0x02 => {
                     // Set Vx = Vx AND Vy
                     self.registers[operation.x] &= self.registers[operation.y];
+                    match self.mode {
+                        Mode::Chip8 => {
+                            self.registers[0xf] = 0;
+                        }
+                        _ => {}
+                    }
                 }
                 0x03 => {
                     // Set Vx = Vx XOR Vy
                     self.registers[operation.x] ^= self.registers[operation.y];
+                    match self.mode {
+                        Mode::Chip8 => {
+                            self.registers[0xf] = 0;
+                        }
+                        _ => {}
+                    }
                 }
                 0x04 => {
                     // Set Vx = Vx + Vy, set VF = carry
