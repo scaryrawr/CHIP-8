@@ -18,7 +18,7 @@
             },
             "args": [
                 "--program",
-                "/Users/mike/Downloads/Space Invaders [David Winter].ch8",
+                "/Users/mike/Downloads/4-flags.ch8",
                 "--mode",
                 "chip48",
                 "--debug"

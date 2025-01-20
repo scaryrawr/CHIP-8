@@ -176,17 +176,17 @@ impl Chip8 {
                     self.registers[0xF] = !overflow as u8;
                 }
                 0x06 => {
-                    // Set Vx = Vy SHR 1
                     match self.mode {
                         Mode::Chip8 => {
-                            self.registers[0xF] = self.registers[operation.y] & 0x1;
-                            self.registers[operation.x] = self.registers[operation.y] >> 1;
+                            // Set Vx = Vy SHR 1
+                            self.registers[operation.x] = self.registers[operation.y];
                         }
-                        Mode::Chip48 => {
-                            self.registers[0xF] = self.registers[operation.x] & 0x1;
-                            self.registers[operation.x] >>= 1;
-                        }
+                        Mode::Chip48 => {}
                     }
+
+                    let carry = self.registers[operation.x] & 1;
+                    self.registers[operation.x] >>= 1;
+                    self.registers[0xF] = carry;
                 }
                 0x07 => {
                     // Set Vx = Vy - Vx, set VF = NOT borrow
@@ -196,17 +196,17 @@ impl Chip8 {
                     self.registers[0xF] = !overflow as u8;
                 }
                 0x0E => {
-                    // Set Vx = Vy SHL 1
                     match self.mode {
                         Mode::Chip8 => {
-                            self.registers[0xF] = self.registers[operation.y] >> 7;
-                            self.registers[operation.x] = self.registers[operation.y] << 1;
+                            // Set Vx = Vy SHL 1
+                            self.registers[operation.x] = self.registers[operation.y];
                         }
-                        Mode::Chip48 => {
-                            self.registers[0xF] = self.registers[operation.x] >> 7;
-                            self.registers[operation.x] <<= 1;
-                        }
+                        Mode::Chip48 => {}
                     }
+
+                    let carry = self.registers[operation.x] >> 7;
+                    self.registers[operation.x] <<= 1;
+                    self.registers[0xF] = carry;
                 }
                 _ => {}
             },
